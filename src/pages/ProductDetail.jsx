@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import {
   ArrowLeft,
   Check,
-  ChevronLeft,
+  MessageCircle,
   PackageSearch,
   ShoppingCart,
   Truck,
@@ -16,6 +16,13 @@ const moneyFormatter = new Intl.NumberFormat("es-AR", {
   currency: "ARS",
   maximumFractionDigits: 0,
 });
+
+/*
+  Más adelante reemplazá este valor por el WhatsApp real.
+  Formato: código de país + código de área + número, sin + ni espacios.
+  Ejemplo Argentina: 5492611234567
+*/
+const WHATSAPP_NUMBER = "549XXXXXXXXXX";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -81,6 +88,12 @@ export default function ProductDetail() {
 
   const mainImage = images[selectedImage] || null;
   const hasStock = Number(product.stock) > 0;
+
+  const whatsappMessage = `Hola, quiero consultar por el producto: ${product.name}.`;
+
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    whatsappMessage
+  )}`;
 
   return (
     <main className="product-detail-page">
@@ -166,6 +179,16 @@ export default function ProductDetail() {
               <ShoppingCart size={19} />
               {hasStock ? "Agregar al carrito" : "Sin stock"}
             </button>
+
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="product-detail__whatsapp-button"
+            >
+              <MessageCircle size={20} />
+              Consultar por WhatsApp
+            </a>
           </section>
         </div>
       </section>

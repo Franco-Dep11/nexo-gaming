@@ -218,3 +218,24 @@
     height: 300px;
   }
 }
+
+.product-detail__whatsapp-button {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 10px;
+  background: #25d366;
+  color: #ffffff;
+  font-weight: 900;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.product-detail__whatsapp-button:hover {
+  background: #1ebd5a;
+  transform: translateY(-1px);
+}
