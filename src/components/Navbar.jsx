@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { Link } from "react-router";
 
 const links = [
-  { id: 1, label: "Productos", href: "#productos" },
+  { id: 1, label: "Productos", href: "/productos", internal: true },
   { id: 2, label: "Notebooks", href: "#notebooks" },
-  { id: 3, label: "Armá tu PC", href: "#arma-tu-pc" },
+  { id: 3, label: "Armá tu PC", href: "/armar-pc", internal: true },
   { id: 4, label: "Ofertas", href: "#ofertas" },
   { id: 5, label: "Ayuda", href: "#ayuda" },
 ];
@@ -31,9 +32,15 @@ function Navbar() {
         <ul className={`navbar__links ${menuOpen ? "is-open" : ""}`}>
           {links.map((link) => (
             <li key={link.id}>
-              <a href={link.href} onClick={closeMenu}>
-                {link.label}
-              </a>
+              {link.internal ? (
+                <Link to={link.href} onClick={closeMenu}>
+                  {link.label}
+                </Link>
+              ) : (
+                <a href={link.href} onClick={closeMenu}>
+                  {link.label}
+                </a>
+              )}
             </li>
           ))}
         </ul>

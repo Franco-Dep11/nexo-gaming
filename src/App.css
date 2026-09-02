@@ -459,6 +459,10 @@
   color: #ffffff;
 }
 
+.header__action--admin svg {
+  color: #ffffff;
+}
+
 .header__action--admin:hover {
   border-color: #ff6845;
   background: #ff6845;
