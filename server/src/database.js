@@ -33,4 +33,31 @@ db.exec(`
   );
 `);
 
+/*
+  Galería de imágenes:
+  cada producto puede tener una o varias imágenes,
+  ordenadas mediante el campo position.
+*/
+db.exec(`
+  CREATE TABLE IF NOT EXISTS product_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    productId INTEGER NOT NULL,
+    imageUrl TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(productId, position),
+    FOREIGN KEY (productId) REFERENCES products(id)
+  );
+
+  /*
+    Migra automáticamente la imagen actual de cada producto.
+    Tu RX 5600 XT conservará su foto como imagen principal.
+  */
+  INSERT OR IGNORE INTO product_images (productId, imageUrl, position)
+  SELECT id, imageUrl, 0
+  FROM products
+  WHERE imageUrl IS NOT NULL
+    AND TRIM(imageUrl) <> '';
+`);
+
 module.exports = db;

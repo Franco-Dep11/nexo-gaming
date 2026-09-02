@@ -17,13 +17,15 @@ import {
 import { createCategory, getCategories } from "../services/categoryStorage";
 import "./ProductManager.css";
 
+const MAX_IMAGES = 6;
+
 const emptyForm = {
   name: "",
   category: "",
   stock: "",
   price: "",
   description: "",
-  imageUrl: "",
+  images: [],
   active: true,
 };
 
@@ -118,38 +120,75 @@ export default function ProductManager() {
     }));
   };
 
-  const handleImage = async (file) => {
-    if (!file) return;
+  const handleImages = async (files) => {
+    const selectedFiles = Array.from(files || []);
 
-    if (!file.type.startsWith("image/")) {
-      setMessage("Elegí un archivo de imagen válido.");
+    if (selectedFiles.length === 0) return;
+
+    const invalidFile = selectedFiles.find(
+      (file) => !file.type.startsWith("image/")
+    );
+
+    if (invalidFile) {
+      setMessage("Elegí solamente archivos de imagen.");
       return;
     }
 
+    const availableSlots = MAX_IMAGES - form.images.length;
+
+    if (availableSlots <= 0) {
+      setMessage(`Podés cargar hasta ${MAX_IMAGES} imágenes por producto.`);
+      return;
+    }
+
+    const filesToProcess = selectedFiles.slice(0, availableSlots);
+
     try {
-      setMessage("Procesando imagen...");
-      const compressedImage = await compressImage(file);
+      setMessage("Procesando imágenes...");
+
+      const compressedImages = await Promise.all(
+        filesToProcess.map((file) => compressImage(file))
+      );
 
       setForm((currentForm) => ({
         ...currentForm,
-        imageUrl: compressedImage,
+        images: [...currentForm.images, ...compressedImages],
       }));
 
-      setMessage("Imagen cargada correctamente.");
+      if (selectedFiles.length > availableSlots) {
+        setMessage(
+          `Se cargaron ${availableSlots} imágenes. El máximo es ${MAX_IMAGES}.`
+        );
+      } else {
+        setMessage(
+          `${compressedImages.length} imagen${
+            compressedImages.length === 1 ? "" : "es"
+          } cargada${compressedImages.length === 1 ? "" : "s"} correctamente.`
+        );
+      }
     } catch {
-      setMessage("No se pudo procesar esa imagen.");
+      setMessage("No se pudieron procesar las imágenes.");
     }
   };
 
   const handleFileChange = (event) => {
-    handleImage(event.target.files?.[0]);
+    handleImages(event.target.files);
     event.target.value = "";
   };
 
   const handleDrop = (event) => {
     event.preventDefault();
     setIsDraggingImage(false);
-    handleImage(event.dataTransfer.files?.[0]);
+    handleImages(event.dataTransfer.files);
+  };
+
+  const removeImage = (indexToRemove) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      images: currentForm.images.filter(
+        (_, index) => index !== indexToRemove
+      ),
+    }));
   };
 
   const handleCreateCategory = async () => {
@@ -212,6 +251,13 @@ export default function ProductManager() {
   };
 
   const handleEdit = (product) => {
+    const imageUrls =
+      Array.isArray(product.images) && product.images.length > 0
+        ? product.images.map((image) => image.imageUrl)
+        : product.imageUrl
+          ? [product.imageUrl]
+          : [];
+
     setEditingId(product.id);
 
     setForm({
@@ -220,7 +266,7 @@ export default function ProductManager() {
       stock: String(product.stock ?? ""),
       price: String(product.price ?? ""),
       description: product.description || "",
-      imageUrl: product.imageUrl || "",
+      images: imageUrls,
       active: product.active !== false,
     });
 
@@ -370,13 +416,19 @@ export default function ProductManager() {
             </label>
 
             <div className="product-form__image-section">
-              <span>Imagen del producto</span>
+              <div className="product-form__image-heading">
+                <span>Imágenes del producto</span>
+                <small>
+                  {form.images.length}/{MAX_IMAGES} cargadas
+                </small>
+              </div>
 
               <input
                 ref={fileInputRef}
                 className="image-file-input"
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileChange}
               />
 
@@ -391,39 +443,45 @@ export default function ProductManager() {
                 onDragLeave={() => setIsDraggingImage(false)}
                 onDrop={handleDrop}
               >
-                {form.imageUrl ? (
-                  <div className="image-preview">
-                    <img src={form.imageUrl} alt="Vista previa" />
+                <ImagePlus size={28} />
+                <p>Arrastrá una o varias imágenes aquí</p>
+                <span>o</span>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((currentForm) => ({
-                          ...currentForm,
-                          imageUrl: "",
-                        }))
-                      }
-                      title="Quitar imagen"
-                      aria-label="Quitar imagen"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <ImagePlus size={28} />
-                    <p>Arrastrá una imagen aquí</p>
-                    <span>o</span>
-
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Buscar imagen
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Buscar imágenes
+                </button>
               </div>
+
+              {form.images.length > 0 && (
+                <div className="image-preview-grid">
+                  {form.images.map((imageUrl, index) => (
+                    <div key={imageUrl} className="image-preview-card">
+                      <img
+                        src={imageUrl}
+                        alt={`Vista previa ${index + 1}`}
+                      />
+
+                      {index === 0 && (
+                        <span className="image-preview-card__main">
+                          Portada
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        title="Quitar imagen"
+                        aria-label={`Quitar imagen ${index + 1}`}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <label className="active-checkbox">
@@ -497,55 +555,60 @@ export default function ProductManager() {
           ) : (
             <>
               <div className="product-list">
-                {filteredProducts.map((product) => (
-                  <article
-                    key={product.id}
-                    className={`product-list__item ${
-                      product.active === false ? "is-inactive" : ""
-                    }`}
-                    onClick={() => handleEdit(product)}
-                  >
-                    <div className="product-list__image">
-                      {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} />
-                      ) : (
-                        <ImagePlus size={22} />
-                      )}
-                    </div>
+                {filteredProducts.map((product) => {
+                  const mainImage =
+                    product.images?.[0]?.imageUrl || product.imageUrl;
 
-                    <div className="product-list__info">
-                      <h3>{product.name}</h3>
-                      <p>{product.category}</p>
-                      <strong>
-                        ${Number(product.price).toLocaleString("es-AR")}
-                      </strong>
-                    </div>
+                  return (
+                    <article
+                      key={product.id}
+                      className={`product-list__item ${
+                        product.active === false ? "is-inactive" : ""
+                      }`}
+                      onClick={() => handleEdit(product)}
+                    >
+                      <div className="product-list__image">
+                        {mainImage ? (
+                          <img src={mainImage} alt={product.name} />
+                        ) : (
+                          <ImagePlus size={22} />
+                        )}
+                      </div>
 
-                    <div className="product-list__buttons">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleEdit(product);
-                        }}
-                        title="Editar producto"
-                      >
-                        <Pencil size={17} />
-                      </button>
+                      <div className="product-list__info">
+                        <h3>{product.name}</h3>
+                        <p>{product.category}</p>
+                        <strong>
+                          ${Number(product.price).toLocaleString("es-AR")}
+                        </strong>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeactivate(product.id);
-                        }}
-                        title="Dar de baja"
-                      >
-                        <Trash2 size={17} />
-                      </button>
-                    </div>
-                  </article>
-                ))}
+                      <div className="product-list__buttons">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEdit(product);
+                          }}
+                          title="Editar producto"
+                        >
+                          <Pencil size={17} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeactivate(product.id);
+                          }}
+                          title="Dar de baja"
+                        >
+                          <Trash2 size={17} />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
               <button

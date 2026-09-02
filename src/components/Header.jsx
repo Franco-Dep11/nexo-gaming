@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { Search, UserRound, ShoppingCart } from "lucide-react";
 import { isAdminAuthenticated } from "../services/adminSession";
 
-function Header() {
+function Header({ searchTerm, onSearchChange }) {
   const adminLoggedIn = isAdminAuthenticated();
 
   return (
@@ -22,6 +22,8 @@ function Header() {
             type="search"
             placeholder="Buscar productos..."
             aria-label="Buscar productos"
+            value={searchTerm}
+            onChange={(event) => onSearchChange(event.target.value)}
           />
 
           <button type="submit" aria-label="Buscar">

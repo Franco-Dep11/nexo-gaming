@@ -1,25 +1,30 @@
+import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import Header from "./components/Header";
 import Navbar from "./components/Navbar";
 import HeroCarousel from "./components/HeroCarousel";
+import ProductCatalog from "./components/ProductCatalog";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import { isAdminAuthenticated } from "./services/adminSession";
 import "./App.css";
 
 function StoreHome() {
+  const [searchTerm, setSearchTerm] = useState("");
+
   return (
     <>
-      <Header />
+      <Header
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
+
       <Navbar />
 
       <main className="page">
         <HeroCarousel />
 
-        <section id="productos" className="products-placeholder">
-          <h2>Productos destacados</h2>
-          <p>Próximamente agregaremos aquí el catálogo de productos.</p>
-        </section>
+        <ProductCatalog searchTerm={searchTerm} />
       </main>
     </>
   );

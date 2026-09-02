@@ -4,21 +4,23 @@ const { requireAdmin } = require("./auth.middleware");
 
 const router = express.Router();
 
-/* Categorías disponibles para el catálogo y el panel */
-
 router.get("/", (req, res) => {
   const categories = db
     .prepare(`
-      SELECT id, name, createdAt
-      FROM categories
-      ORDER BY name COLLATE NOCASE ASC
+      SELECT name
+      FROM (
+        SELECT name FROM categories
+        UNION
+        SELECT category AS name
+        FROM products
+        WHERE TRIM(category) <> ''
+      )
+      ORDER BY name COLLATE NOCASE
     `)
     .all();
 
   res.json(categories);
 });
-
-/* Crear categoría desde el panel administrador */
 
 router.post("/", requireAdmin, (req, res) => {
   const name = req.body.name?.trim();
@@ -29,36 +31,12 @@ router.post("/", requireAdmin, (req, res) => {
     });
   }
 
-  const existingCategory = db
-    .prepare(`
-      SELECT id, name
-      FROM categories
-      WHERE name = ?
-    `)
-    .get(name);
+  db.prepare(`
+    INSERT OR IGNORE INTO categories (name)
+    VALUES (?)
+  `).run(name);
 
-  if (existingCategory) {
-    return res.status(409).json({
-      message: "Esa categoría ya existe.",
-    });
-  }
-
-  const result = db
-    .prepare(`
-      INSERT INTO categories (name)
-      VALUES (?)
-    `)
-    .run(name);
-
-  const newCategory = db
-    .prepare(`
-      SELECT id, name, createdAt
-      FROM categories
-      WHERE id = ?
-    `)
-    .get(result.lastInsertRowid);
-
-  res.status(201).json(newCategory);
+  res.status(201).json({ name });
 });
 
 module.exports = router;

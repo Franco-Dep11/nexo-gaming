@@ -4,16 +4,31 @@ const { requireAdmin } = require("./auth.middleware");
 
 const router = express.Router();
 
+function normalizeImageUrls(data) {
+  const rawImages = Array.isArray(data.images)
+    ? data.images
+    : data.imageUrl
+      ? [data.imageUrl]
+      : [];
+
+  const imageUrls = rawImages
+    .filter((imageUrl) => typeof imageUrl === "string")
+    .map((imageUrl) => imageUrl.trim())
+    .filter(Boolean);
+
+  return [...new Set(imageUrls)];
+}
+
 function validateProduct(data) {
   const errors = [];
 
   const name = data.name?.trim();
   const description = data.description?.trim();
   const category = data.category?.trim();
-  const imageUrl = data.imageUrl?.trim() || null;
   const price = Number(data.price);
   const stock = Number(data.stock);
   const active = data.active !== false;
+  const images = normalizeImageUrls(data);
 
   if (!name) errors.push("El nombre es obligatorio.");
   if (!description) errors.push("La descripción es obligatoria.");
@@ -33,12 +48,50 @@ function validateProduct(data) {
       name,
       description,
       category,
-      imageUrl,
       price,
       stock,
       active: active ? 1 : 0,
+      imageUrl: images[0] || null,
+      images,
     },
   };
+}
+
+function getProductImages(productId) {
+  return db
+    .prepare(`
+      SELECT id, imageUrl, position
+      FROM product_images
+      WHERE productId = ?
+      ORDER BY position ASC
+    `)
+    .all(productId);
+}
+
+function attachImages(product) {
+  const images = getProductImages(product.id);
+
+  return {
+    ...product,
+    imageUrl: product.imageUrl || images[0]?.imageUrl || null,
+    images,
+  };
+}
+
+function saveProductImages(productId, imageUrls) {
+  db.prepare(`
+    DELETE FROM product_images
+    WHERE productId = ?
+  `).run(productId);
+
+  const insertImage = db.prepare(`
+    INSERT INTO product_images (productId, imageUrl, position)
+    VALUES (?, ?, ?)
+  `);
+
+  imageUrls.forEach((imageUrl, position) => {
+    insertImage.run(productId, imageUrl, position);
+  });
 }
 
 /* Productos visibles en la tienda */
@@ -51,13 +104,13 @@ router.get("/", (req, res) => {
       WHERE active = 1
       ORDER BY id DESC
     `)
-    .all();
+    .all()
+    .map(attachImages);
 
   res.json(products);
 });
 
-/* Panel administrador: incluye productos activos y dados de baja.
-   Debe estar antes de /:id. */
+/* Panel administrador: activos y dados de baja */
 
 router.get("/admin/all", requireAdmin, (req, res) => {
   const products = db
@@ -66,7 +119,8 @@ router.get("/admin/all", requireAdmin, (req, res) => {
       FROM products
       ORDER BY id DESC
     `)
-    .all();
+    .all()
+    .map(attachImages);
 
   res.json(products);
 });
@@ -101,11 +155,13 @@ router.post("/", requireAdmin, (req, res) => {
       product.active
     );
 
+  saveProductImages(result.lastInsertRowid, product.images);
+
   const newProduct = db
     .prepare("SELECT * FROM products WHERE id = ?")
     .get(result.lastInsertRowid);
 
-  res.status(201).json(newProduct);
+  res.status(201).json(attachImages(newProduct));
 });
 
 router.put("/:id", requireAdmin, (req, res) => {
@@ -148,11 +204,13 @@ router.put("/:id", requireAdmin, (req, res) => {
     req.params.id
   );
 
+  saveProductImages(req.params.id, product.images);
+
   const updatedProduct = db
     .prepare("SELECT * FROM products WHERE id = ?")
     .get(req.params.id);
 
-  res.json(updatedProduct);
+  res.json(attachImages(updatedProduct));
 });
 
 router.delete("/:id", requireAdmin, (req, res) => {
@@ -192,7 +250,7 @@ router.get("/:id", (req, res) => {
     });
   }
 
-  res.json(product);
+  res.json(attachImages(product));
 });
 
 module.exports = router;
