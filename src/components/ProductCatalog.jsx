@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { PackageSearch, SlidersHorizontal } from "lucide-react";
 import { apiRequest } from "../services/api";
 import "./ProductCatalog.css";
@@ -80,7 +81,10 @@ export default function ProductCatalog({ searchTerm }) {
   }, [products, searchTerm, selectedCategory, availability, sortBy]);
 
   const hasActiveFilters =
-    searchTerm || selectedCategory || availability !== "all" || sortBy !== "newest";
+    searchTerm ||
+    selectedCategory ||
+    availability !== "all" ||
+    sortBy !== "newest";
 
   function clearFilters() {
     setSelectedCategory("");
@@ -94,6 +98,7 @@ export default function ProductCatalog({ searchTerm }) {
         <div>
           <span>CATÁLOGO</span>
           <h2>Encontrá tu próximo componente</h2>
+
           <p>
             {status === "ready"
               ? `${visibleProducts.length} producto${
@@ -109,6 +114,7 @@ export default function ProductCatalog({ searchTerm }) {
       <div className="store-catalog__filters">
         <label>
           Categoría
+
           <select
             value={selectedCategory}
             onChange={(event) => setSelectedCategory(event.target.value)}
@@ -125,6 +131,7 @@ export default function ProductCatalog({ searchTerm }) {
 
         <label>
           Disponibilidad
+
           <select
             value={availability}
             onChange={(event) => setAvailability(event.target.value)}
@@ -136,6 +143,7 @@ export default function ProductCatalog({ searchTerm }) {
 
         <label>
           Ordenar por
+
           <select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value)}
@@ -158,9 +166,7 @@ export default function ProductCatalog({ searchTerm }) {
       </div>
 
       {status === "loading" && (
-        <div className="store-catalog__empty">
-          Cargando catálogo...
-        </div>
+        <div className="store-catalog__empty">Cargando catálogo...</div>
       )}
 
       {status === "error" && (
@@ -183,8 +189,9 @@ export default function ProductCatalog({ searchTerm }) {
             const hasStock = Number(product.stock) > 0;
 
             return (
-              <article
+              <Link
                 key={product.id}
+                to={`/productos/${product.id}`}
                 className={`store-product-card ${
                   !hasStock ? "store-product-card--out-of-stock" : ""
                 }`}
@@ -204,9 +211,9 @@ export default function ProductCatalog({ searchTerm }) {
 
                   <h3>{product.name}</h3>
 
-                  <p>{product.description}</p>
-
-                  <strong>{moneyFormatter.format(Number(product.price))}</strong>
+                  <strong>
+                    {moneyFormatter.format(Number(product.price))}
+                  </strong>
 
                   <small className={hasStock ? "is-available" : "is-unavailable"}>
                     {hasStock
@@ -214,7 +221,7 @@ export default function ProductCatalog({ searchTerm }) {
                       : "Sin stock"}
                   </small>
                 </div>
-              </article>
+              </Link>
             );
           })}
         </div>

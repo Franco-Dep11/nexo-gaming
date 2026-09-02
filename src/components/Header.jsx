@@ -1,9 +1,31 @@
-import { Link } from "react-router";
-import { Search, UserRound, ShoppingCart } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { Search, ShoppingCart, UserRound } from "lucide-react";
 import { isAdminAuthenticated } from "../services/adminSession";
 
-function Header({ searchTerm, onSearchChange }) {
+function Header() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const adminLoggedIn = isAdminAuthenticated();
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search).get("q") || "";
+    setSearchTerm(query);
+  }, [location.search]);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    const cleanSearch = searchTerm.trim();
+
+    if (!cleanSearch) {
+      return;
+    }
+
+    navigate(`/buscar?q=${encodeURIComponent(cleanSearch)}`);
+  }
 
   return (
     <header className="header">
@@ -17,13 +39,13 @@ function Header({ searchTerm, onSearchChange }) {
           </div>
         </Link>
 
-        <form className="search" onSubmit={(event) => event.preventDefault()}>
+        <form className="search" onSubmit={handleSubmit}>
           <input
             type="search"
             placeholder="Buscar productos..."
             aria-label="Buscar productos"
             value={searchTerm}
-            onChange={(event) => onSearchChange(event.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
           />
 
           <button type="submit" aria-label="Buscar">

@@ -1,16 +1,16 @@
 const path = require("path");
-const Database = require("better-sqlite3");
+const { DatabaseSync } = require("node:sqlite");
 
 const databasePath = path.join(__dirname, "..", "store.db");
 
-const db = new Database(databasePath);
+const db = new DatabaseSync(databasePath);
 
 /*
   Para este MVP usamos DELETE en lugar de WAL.
   Así todos los cambios quedan directamente dentro de store.db,
   que será el archivo que viajará mediante GitHub.
 */
-db.pragma("journal_mode = DELETE");
+db.exec("PRAGMA journal_mode = DELETE");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS categories (
@@ -31,14 +31,7 @@ db.exec(`
     createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
-`);
 
-/*
-  Galería de imágenes:
-  cada producto puede tener una o varias imágenes,
-  ordenadas mediante el campo position.
-*/
-db.exec(`
   CREATE TABLE IF NOT EXISTS product_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     productId INTEGER NOT NULL,
@@ -49,10 +42,6 @@ db.exec(`
     FOREIGN KEY (productId) REFERENCES products(id)
   );
 
-  /*
-    Migra automáticamente la imagen actual de cada producto.
-    Tu RX 5600 XT conservará su foto como imagen principal.
-  */
   INSERT OR IGNORE INTO product_images (productId, imageUrl, position)
   SELECT id, imageUrl, 0
   FROM products

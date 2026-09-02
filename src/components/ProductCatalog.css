@@ -206,3 +206,8 @@
     width: 100%;
   }
 }
+
+.store-product-card {
+  color: inherit;
+  text-decoration: none;
+}
