@@ -49,8 +49,8 @@ export default function Footer() {
       <div className="site-footer__container">
         <div className="site-footer__grid">
           <section className="site-footer__brand">
-            <Link to="/" aria-label="Ir al inicio de Nexo Gaming">
-              <span>NEXO</span> GAMING
+            <Link to="/" aria-label="Ir al inicio de Nexus Gaming">
+              <span>Nexus</span> Gaming
             </Link>
             <p>
               Tecnología, componentes y equipos para llevar tu experiencia al
@@ -73,7 +73,7 @@ export default function Footer() {
           </section>
 
           <section className="site-footer__column">
-            <h2>Nexo Gaming</h2>
+            <h2>Nexus Gaming</h2>
             <PendingLinks links={placeholderLinks.company} />
           </section>
 
@@ -85,7 +85,7 @@ export default function Footer() {
                   key={name}
                   type="button"
                   disabled
-                  aria-label={`${name} de Nexo Gaming, próximamente`}
+                  aria-label={`${name} de Nexus Gaming, próximamente`}
                   title="Próximamente"
                 >
                   <Icon size={20} />
@@ -96,7 +96,7 @@ export default function Footer() {
         </div>
 
         <div className="site-footer__bottom">
-          <p>© 2026 Nexo Gaming. Todos los derechos reservados.</p>
+          <p>© 2026 Nexus Gaming. Todos los derechos reservados.</p>
         </div>
       </div>
 

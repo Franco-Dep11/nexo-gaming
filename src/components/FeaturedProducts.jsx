@@ -50,7 +50,7 @@ export default function FeaturedProducts() {
     <section id="productos" className="featured-products">
       <div className="featured-products__heading">
         <div>
-          <span>SELECCIÓN NEXO</span>
+          <span>SELECCIÓN Nexus Gaming</span>
           <h2>Productos destacados</h2>
           <p>Descubrí las últimas novedades que sumamos a nuestra tienda.</p>
         </div>

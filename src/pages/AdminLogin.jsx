@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowLeft, LockKeyhole, Mail } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { loginAdmin } from "../services/adminSession";
 import "./Admin.css";
 
@@ -9,6 +9,7 @@ function AdminLogin() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,7 +43,7 @@ function AdminLogin() {
           <LockKeyhole size={28} />
         </div>
 
-        <span className="admin-login__eyebrow">NEXO GAMING</span>
+        <span className="admin-login__eyebrow">Nexus Gaming</span>
         <h1>Acceso administrador</h1>
         <p>Ingresá para administrar el catálogo de productos.</p>
 
@@ -54,7 +55,7 @@ function AdminLogin() {
               <Mail size={18} />
               <input
                 type="email"
-                placeholder="admin@nexogaming.com"
+                placeholder="admin@nexusgaming.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
@@ -68,12 +69,21 @@ function AdminLogin() {
             <div className="admin-input">
               <LockKeyhole size={18} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Ingresá tu contraseña"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 required
               />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+              </button>
             </div>
           </label>
 
@@ -89,7 +99,7 @@ function AdminLogin() {
         </form>
 
         <p className="admin-login__demo">
-          Demo: <strong>admin@nexogaming.com</strong> /{" "}
+          Demo: <strong>admin@nexusgaming.com</strong> /{" "}
           <strong>admin123</strong>
         </p>
       </section>

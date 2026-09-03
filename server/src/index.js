@@ -21,7 +21,7 @@ app.use(express.json({ limit: "10mb" }));
 
 app.get("/api/health", (req, res) => {
   res.json({
-    message: "Backend de Nexo Gaming funcionando.",
+    message: "Backend de Nexus Gaming funcionando.",
   });
 });
 

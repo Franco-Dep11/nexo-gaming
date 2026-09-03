@@ -17,7 +17,7 @@ function AdminDashboard() {
       <section className="admin-dashboard">
         <header className="admin-dashboard__header">
           <div>
-            <span className="admin-login__eyebrow">NEXO GAMING</span>
+            <span className="admin-login__eyebrow">Nexus Gaming</span>
             <h1>Panel administrador</h1>
             <p>Administrá los productos que se mostrarán en la tienda.</p>
           </div>

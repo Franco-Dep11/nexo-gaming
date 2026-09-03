@@ -239,7 +239,7 @@ export default function PcBuilder() {
 
       <main className="pc-builder-page">
         <header className="pc-builder-intro">
-          <span>CONFIGURADOR NEXO</span>
+          <span>CONFIGURADOR Nexus Gaming</span>
           <h1>Armá tu PC</h1>
           <p>Elegí cada componente paso a paso y armá tu equipo ideal.</p>
         </header>

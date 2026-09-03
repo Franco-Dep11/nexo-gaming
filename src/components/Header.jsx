@@ -34,8 +34,8 @@ function Header() {
           <div className="brand__symbol">N</div>
 
           <div className="brand__text">
-            <span>NEXO</span>
-            <strong>GAMING</strong>
+            <span>Nexus</span>
+            <strong>Gaming</strong>
           </div>
         </Link>
 
