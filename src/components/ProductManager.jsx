@@ -15,6 +15,7 @@ import {
   updateProduct,
 } from "../services/productStorage";
 import { createCategory, getCategories } from "../services/categoryStorage";
+import ConfirmDialog from "./ConfirmDialog";
 import {
   getCategoryType,
   normalizeSpecifications,
@@ -67,6 +68,7 @@ function compressImage(file) {
 
 export default function ProductManager() {
   const fileInputRef = useRef(null);
+  const formCardRef = useRef(null);
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -78,6 +80,8 @@ export default function ProductManager() {
   const [filterCategory, setFilterCategory] = useState("");
   const [catalogExpanded, setCatalogExpanded] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [confirmation, setConfirmation] = useState(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     let componentIsMounted = true;
@@ -277,20 +281,17 @@ export default function ProductManager() {
       ),
     };
 
-    try {
-      if (editingId) {
-        await updateProduct(editingId, productData);
-        setMessage("Producto actualizado correctamente.");
-      } else {
-        await createProduct(productData);
-        setMessage("Producto creado correctamente.");
-      }
-
-      await refreshProducts();
-      resetForm();
-    } catch (error) {
-      setMessage(error.message);
-    }
+    setConfirmation({
+      type: editingId ? "update" : "create",
+      productId: editingId,
+      productData,
+      title: editingId ? "Confirmar cambios" : "Confirmar creación",
+      message: editingId
+        ? `¿Seguro que deseás guardar los cambios de “${form.name}”?`
+        : `¿Seguro que deseás crear el producto “${form.name}”?`,
+      confirmLabel: editingId ? "Guardar cambios" : "Crear producto",
+      tone: "primary",
+    });
   };
 
   const handleEdit = (product) => {
@@ -314,30 +315,67 @@ export default function ProductManager() {
       active: product.active !== false,
     });
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
+    setCatalogExpanded(false);
+    requestAnimationFrame(() => {
+      formCardRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     });
   };
 
-  const handleDeactivate = async (id) => {
-    const confirmed = window.confirm(
-      "¿Querés dar de baja este producto? Podrás editarlo o reactivarlo después."
-    );
+  const handleDeactivate = (product) => {
+    setConfirmation({
+      type: "deactivate",
+      productId: product.id,
+      title: "Confirmar baja",
+      message: `¿Seguro que deseás dar de baja “${product.name}”? Esta acción ocultará el producto de la tienda.`,
+      confirmLabel: "Dar de baja",
+      tone: "danger",
+    });
+  };
 
-    if (!confirmed) return;
+  const executeConfirmedAction = async () => {
+    if (!confirmation) return;
 
+    const scrollPosition = window.scrollY;
+    setIsConfirming(true);
     try {
-      await deactivateProduct(id);
-      await refreshProducts();
-
-      if (editingId === id) {
-        resetForm();
+      if (confirmation.type === "create") {
+        await createProduct(confirmation.productData);
+        setMessage("Producto creado correctamente.");
       }
 
-      setMessage("Producto dado de baja.");
+      if (confirmation.type === "update") {
+        await updateProduct(
+          confirmation.productId,
+          confirmation.productData
+        );
+        setMessage("Producto actualizado correctamente.");
+      }
+
+      if (confirmation.type === "deactivate") {
+        await deactivateProduct(confirmation.productId);
+        setMessage("Producto dado de baja.");
+      }
+
+      await refreshProducts();
+
+      if (
+        confirmation.type === "create" ||
+        confirmation.type === "update" ||
+        editingId === confirmation.productId
+      ) {
+        resetForm();
+      }
     } catch (error) {
       setMessage(error.message);
+    } finally {
+      setIsConfirming(false);
+      setConfirmation(null);
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollPosition, behavior: "auto" });
+      });
     }
   };
 
@@ -355,11 +393,21 @@ export default function ProductManager() {
       }`}
     >
       <div className="product-manager__layout">
-        <article className="product-form-card">
+        <article
+          ref={formCardRef}
+          className={`product-form-card ${editingId ? "is-editing" : ""}`}
+        >
           <div className="section-heading">
-            <span>NUEVO PRODUCTO</span>
+            <span>{editingId ? "EDITANDO PRODUCTO" : "NUEVO PRODUCTO"}</span>
             <h2>{editingId ? "Editar producto" : "Alta de producto"}</h2>
           </div>
+
+          {editingId && (
+            <div className="product-form-card__editing-notice">
+              <Pencil size={17} />
+              Estás editando <strong>{form.name}</strong>
+            </div>
+          )}
 
           <form className="product-form" onSubmit={handleSubmit}>
             <label>
@@ -744,7 +792,7 @@ export default function ProductManager() {
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleDeactivate(product.id);
+                            handleDeactivate(product);
                           }}
                           title="Dar de baja"
                         >
@@ -767,6 +815,17 @@ export default function ProductManager() {
           )}
         </article>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(confirmation)}
+        title={confirmation?.title}
+        message={confirmation?.message}
+        confirmLabel={confirmation?.confirmLabel}
+        tone={confirmation?.tone}
+        busy={isConfirming}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={executeConfirmedAction}
+      />
     </section>
   );
 }

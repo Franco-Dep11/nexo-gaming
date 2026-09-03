@@ -123,6 +123,32 @@
   transform: translateY(-1px);
 }
 
+.product-form-card {
+  scroll-margin-top: 24px;
+}
+
+.product-form-card.is-editing {
+  border-color: #ff6845;
+  box-shadow: 0 0 0 2px rgb(255 77 36 / 12%);
+}
+
+.product-form-card__editing-notice {
+  margin-top: 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #704032;
+  border-radius: 9px;
+  background: #2d201d;
+  color: #ffc1b3;
+  font-size: 13px;
+}
+
+.product-form-card__editing-notice strong {
+  color: #ffffff;
+}
+
 .technical-specifications {
   padding: 18px;
   display: grid;

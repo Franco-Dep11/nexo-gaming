@@ -1,0 +1,118 @@
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  background: rgb(5 5 7 / 76%);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-dialog {
+  position: relative;
+  width: min(100%, 470px);
+  padding: 30px;
+  border: 1px solid #45454c;
+  border-radius: 16px;
+  background: #1b1b1e;
+  color: #ffffff;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 48%);
+}
+
+.confirm-dialog__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: #29292d;
+  color: #b8b8c0;
+  cursor: pointer;
+}
+
+.confirm-dialog__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+}
+
+.confirm-dialog__icon--primary {
+  background: rgb(255 77 36 / 15%);
+  color: #ff6845;
+}
+
+.confirm-dialog__icon--danger {
+  background: rgb(214 53 53 / 16%);
+  color: #ff6b63;
+}
+
+.confirm-dialog h2 {
+  margin: 19px 0 9px;
+  font-size: 24px;
+}
+
+.confirm-dialog p {
+  margin: 0;
+  color: #b8b8c0;
+  line-height: 1.55;
+}
+
+.confirm-dialog__actions {
+  margin-top: 27px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+
+.confirm-dialog__actions button {
+  min-height: 45px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.confirm-dialog__cancel {
+  border: 1px solid #55555d;
+  background: #28282c;
+  color: #eeeeF1;
+}
+
+.confirm-dialog__confirm {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.confirm-dialog__confirm--danger {
+  border-color: #d53939;
+  background: #d53939;
+}
+
+.confirm-dialog__actions button:disabled,
+.confirm-dialog__close:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .confirm-dialog {
+    padding: 25px 20px 20px;
+  }
+
+  .confirm-dialog__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .confirm-dialog__cancel {
+    order: 2;
+  }
+}
