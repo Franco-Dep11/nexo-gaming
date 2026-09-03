@@ -15,6 +15,11 @@ import {
   updateProduct,
 } from "../services/productStorage";
 import { createCategory, getCategories } from "../services/categoryStorage";
+import {
+  getCategoryType,
+  normalizeSpecifications,
+  specificationFields,
+} from "../data/productSpecifications";
 import "./ProductManager.css";
 
 const MAX_IMAGES = 6;
@@ -26,6 +31,7 @@ const emptyForm = {
   price: "",
   description: "",
   images: [],
+  specifications: {},
   active: true,
 };
 
@@ -117,7 +123,36 @@ export default function ProductManager() {
     setForm((currentForm) => ({
       ...currentForm,
       [name]: type === "checkbox" ? checked : value,
+      ...(name === "category" &&
+      getCategoryType(currentForm.category) !== getCategoryType(value)
+        ? { specifications: {} }
+        : {}),
     }));
+  };
+
+  const handleSpecificationChange = (field, value) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      specifications: { ...currentForm.specifications, [field]: value },
+    }));
+  };
+
+  const toggleSpecificationOption = (field, option) => {
+    setForm((currentForm) => {
+      const currentValues = Array.isArray(currentForm.specifications[field])
+        ? currentForm.specifications[field]
+        : [];
+
+      return {
+        ...currentForm,
+        specifications: {
+          ...currentForm.specifications,
+          [field]: currentValues.includes(option)
+            ? currentValues.filter((value) => value !== option)
+            : [...currentValues, option],
+        },
+      };
+    });
   };
 
   const handleImages = async (files) => {
@@ -232,6 +267,14 @@ export default function ProductManager() {
       ...form,
       price: Number(form.price),
       stock: Number(form.stock),
+      specifications: Object.fromEntries(
+        Object.entries(form.specifications).map(([key, value]) => [
+          key,
+          typeof value === "string" && value !== "" && /^\d+(\.\d+)?$/.test(value)
+            ? Number(value)
+            : value,
+        ])
+      ),
     };
 
     try {
@@ -267,6 +310,7 @@ export default function ProductManager() {
       price: String(product.price ?? ""),
       description: product.description || "",
       images: imageUrls,
+      specifications: normalizeSpecifications(product.specifications),
       active: product.active !== false,
     });
 
@@ -300,6 +344,9 @@ export default function ProductManager() {
   const filteredProducts = filterCategory
     ? products.filter((product) => product.category === filterCategory)
     : [];
+
+  const selectedCategoryType = getCategoryType(form.category);
+  const technicalFields = specificationFields[selectedCategoryType] || [];
 
   return (
     <section
@@ -375,6 +422,104 @@ export default function ProductManager() {
                 </button>
               </div>
             )}
+
+            <section className="technical-specifications">
+              <div className="technical-specifications__heading">
+                <span>Especificaciones técnicas</span>
+                <small>Se usan para verificar compatibilidad en Armá tu PC.</small>
+              </div>
+
+              {!form.category && (
+                <p>Elegí una categoría para ver sus campos técnicos.</p>
+              )}
+
+              {form.category && technicalFields.length === 0 && (
+                <p>Esta categoría no requiere datos de compatibilidad por ahora.</p>
+              )}
+
+              {technicalFields.length > 0 && (
+                <div className="technical-specifications__grid">
+                  {technicalFields.map((field) => {
+                    const value =
+                      form.specifications[field.key] ?? (field.multiple ? [] : "");
+
+                    if (field.multiple && field.options) {
+                      return (
+                        <fieldset key={field.key}>
+                          <legend>{field.label}</legend>
+                          <div className="technical-specifications__options">
+                            {field.options.map((option) => (
+                              <label key={option}>
+                                <input
+                                  type="checkbox"
+                                  checked={Array.isArray(value) && value.includes(option)}
+                                  onChange={() =>
+                                    toggleSpecificationOption(field.key, option)
+                                  }
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                      );
+                    }
+
+                    if (field.options) {
+                      return (
+                        <label key={field.key}>
+                          {field.label}
+                          <select
+                            value={value}
+                            onChange={(event) =>
+                              handleSpecificationChange(field.key, event.target.value)
+                            }
+                          >
+                            <option value="">Sin especificar</option>
+                            {field.options.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      );
+                    }
+
+                    return (
+                      <label key={field.key}>
+                        {field.label}{field.suffix ? ` (${field.suffix})` : ""}
+                        <input
+                          type={field.type || "text"}
+                          min={field.type === "number" ? "0" : undefined}
+                          step={field.type === "number" ? "1" : undefined}
+                          value={
+                            field.multiple && Array.isArray(value)
+                              ? value.join(", ")
+                              : value
+                          }
+                          placeholder={field.placeholder}
+                          onChange={(event) =>
+                            handleSpecificationChange(
+                              field.key,
+                              field.multiple
+                                ? event.target.value
+                                    .split(",")
+                                    .map((item) => item.trim())
+                                    .filter(Boolean)
+                                : event.target.value
+                            )
+                          }
+                        />
+                        {field.multiple && (
+                          <small>Separá cada valor con una coma.</small>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
             <div className="product-form__price-row">
               <label>

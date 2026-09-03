@@ -4,6 +4,10 @@ function normalizeProduct(product) {
   return {
     ...product,
     active: Boolean(product.active),
+    specifications:
+      product.specifications && typeof product.specifications === "object"
+        ? product.specifications
+        : {},
   };
 }
 

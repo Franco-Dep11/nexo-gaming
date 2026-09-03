@@ -19,6 +19,23 @@ function normalizeImageUrls(data) {
   return [...new Set(imageUrls)];
 }
 
+function normalizeSpecifications(value) {
+  if (!value) return {};
+
+  if (typeof value === "string") {
+    try {
+      const parsedValue = JSON.parse(value);
+      return parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue)
+        ? parsedValue
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
 function validateProduct(data) {
   const errors = [];
 
@@ -29,6 +46,7 @@ function validateProduct(data) {
   const stock = Number(data.stock);
   const active = data.active !== false;
   const images = normalizeImageUrls(data);
+  const specifications = normalizeSpecifications(data.specifications);
 
   if (!name) errors.push("El nombre es obligatorio.");
   if (!description) errors.push("La descripción es obligatoria.");
@@ -53,6 +71,7 @@ function validateProduct(data) {
       active: active ? 1 : 0,
       imageUrl: images[0] || null,
       images,
+      specifications: JSON.stringify(specifications),
     },
   };
 }
@@ -68,11 +87,12 @@ function getProductImages(productId) {
     .all(productId);
 }
 
-function attachImages(product) {
+function normalizeProduct(product) {
   const images = getProductImages(product.id);
 
   return {
     ...product,
+    specifications: normalizeSpecifications(product.specifications),
     imageUrl: product.imageUrl || images[0]?.imageUrl || null,
     images,
   };
@@ -105,7 +125,7 @@ router.get("/", (req, res) => {
       ORDER BY id DESC
     `)
     .all()
-    .map(attachImages);
+    .map(normalizeProduct);
 
   res.json(products);
 });
@@ -120,7 +140,7 @@ router.get("/admin/all", requireAdmin, (req, res) => {
       ORDER BY id DESC
     `)
     .all()
-    .map(attachImages);
+    .map(normalizeProduct);
 
   res.json(products);
 });
@@ -141,9 +161,10 @@ router.post("/", requireAdmin, (req, res) => {
         category,
         imageUrl,
         stock,
-        active
+        active,
+        specifications
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       product.name,
@@ -152,7 +173,8 @@ router.post("/", requireAdmin, (req, res) => {
       product.category,
       product.imageUrl,
       product.stock,
-      product.active
+      product.active,
+      product.specifications
     );
 
   saveProductImages(result.lastInsertRowid, product.images);
@@ -161,7 +183,7 @@ router.post("/", requireAdmin, (req, res) => {
     .prepare("SELECT * FROM products WHERE id = ?")
     .get(result.lastInsertRowid);
 
-  res.status(201).json(attachImages(newProduct));
+  res.status(201).json(normalizeProduct(newProduct));
 });
 
 router.put("/:id", requireAdmin, (req, res) => {
@@ -191,6 +213,7 @@ router.put("/:id", requireAdmin, (req, res) => {
       imageUrl = ?,
       stock = ?,
       active = ?,
+      specifications = ?,
       updatedAt = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
@@ -201,6 +224,7 @@ router.put("/:id", requireAdmin, (req, res) => {
     product.imageUrl,
     product.stock,
     product.active,
+    product.specifications,
     req.params.id
   );
 
@@ -210,7 +234,7 @@ router.put("/:id", requireAdmin, (req, res) => {
     .prepare("SELECT * FROM products WHERE id = ?")
     .get(req.params.id);
 
-  res.json(attachImages(updatedProduct));
+  res.json(normalizeProduct(updatedProduct));
 });
 
 router.delete("/:id", requireAdmin, (req, res) => {
@@ -250,7 +274,7 @@ router.get("/:id", (req, res) => {
     });
   }
 
-  res.json(attachImages(product));
+  res.json(normalizeProduct(product));
 });
 
 module.exports = router;

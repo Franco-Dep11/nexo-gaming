@@ -49,4 +49,16 @@ db.exec(`
     AND TRIM(imageUrl) <> '';
 `);
 
+const productColumns = db.prepare("PRAGMA table_info(products)").all();
+const hasSpecificationsColumn = productColumns.some(
+  (column) => column.name === "specifications"
+);
+
+if (!hasSpecificationsColumn) {
+  db.exec(`
+    ALTER TABLE products
+    ADD COLUMN specifications TEXT NOT NULL DEFAULT '{}'
+  `);
+}
+
 module.exports = db;

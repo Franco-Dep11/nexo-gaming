@@ -9,6 +9,16 @@
   --container-width: 1400px;
 }
 
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell__content {
+  flex: 1 0 auto;
+}
+
 /* HEADER */
 
 .header {

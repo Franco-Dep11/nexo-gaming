@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
+  CircleAlert,
   CircuitBoard,
   Cpu,
   Fan,
@@ -18,6 +19,11 @@ import {
 import Header from "../components/Header";
 import Navbar from "../components/Navbar";
 import { apiRequest } from "../services/api";
+import {
+  getAssemblyWarnings,
+  getCompatibility,
+  normalizeCategory,
+} from "../data/productSpecifications";
 import "./PcBuilder.css";
 
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
@@ -113,20 +119,15 @@ const builderSteps = [
   },
 ];
 
-function normalizeCategory(value) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
 export default function PcBuilder() {
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("loading");
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selections, setSelections] = useState({});
+  const [ramQuantity, setRamQuantity] = useState(1);
+  const selectorRef = useRef(null);
   const summaryRef = useRef(null);
+  const preservedScrollPositionRef = useRef(null);
 
   useEffect(() => {
     let componentIsMounted = true;
@@ -148,6 +149,16 @@ export default function PcBuilder() {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    if (preservedScrollPositionRef.current === null) return;
+
+    window.scrollTo({
+      top: preservedScrollPositionRef.current,
+      behavior: "auto",
+    });
+    preservedScrollPositionRef.current = null;
+  }, [selections, ramQuantity]);
+
   const currentStep = builderSteps[currentStepIndex];
 
   const currentProducts = useMemo(() => {
@@ -158,24 +169,59 @@ export default function PcBuilder() {
   }, [currentStep, products]);
 
   const selectedProducts = builderSteps
-    .map((step) => ({ step, product: selections[step.id] }))
+    .map((step) => ({
+      step,
+      product: selections[step.id],
+      quantity: step.id === "ram" ? ramQuantity : 1,
+    }))
     .filter(({ product }) => Boolean(product));
 
   const total = selectedProducts.reduce(
-    (sum, { product }) => sum + Number(product.price),
+    (sum, { product, quantity }) => sum + Number(product.price) * quantity,
     0
   );
+  const assemblyWarnings = getAssemblyWarnings(selections);
+
+  function preserveScroll(callback) {
+    preservedScrollPositionRef.current = window.scrollY;
+    callback();
+  }
 
   function selectProduct(product) {
-    setSelections((current) => ({
-      ...current,
-      [currentStep.id]: product,
-    }));
+    preserveScroll(() => {
+      setSelections((current) => ({
+        ...current,
+        [currentStep.id]: product,
+      }));
+
+      if (currentStep.id === "ram" && selections.ram?.id !== product.id) {
+        setRamQuantity(1);
+      }
+    });
+  }
+
+  function clearCurrentSelection() {
+    preserveScroll(() => {
+      setSelections((current) => {
+        const nextSelections = { ...current };
+        delete nextSelections[currentStep.id];
+        return nextSelections;
+      });
+
+      if (currentStep.id === "ram") {
+        setRamQuantity(1);
+      }
+    });
   }
 
   function goToStep(index) {
     setCurrentStepIndex(index);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    requestAnimationFrame(() => {
+      selectorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }
 
   function continueToNextStep() {
@@ -227,7 +273,7 @@ export default function PcBuilder() {
         </nav>
 
         <div className="pc-builder-layout">
-          <section className="component-selector">
+          <section ref={selectorRef} className="component-selector">
             <div className="component-selector__heading">
               <span>PASO {currentStepIndex + 1} DE {builderSteps.length}</span>
               <h2>Elegí tu {currentStep.name}</h2>
@@ -258,13 +304,22 @@ export default function PcBuilder() {
                 {currentProducts.map((product) => {
                   const isSelected = selections[currentStep.id]?.id === product.id;
                   const hasStock = Number(product.stock) > 0;
+                  const compatibility = getCompatibility(
+                    product,
+                    currentStep.id,
+                    selections
+                  );
+                  const cannotSelect =
+                    !hasStock || compatibility.status === "incompatible";
 
                   return (
                     <article
                       key={product.id}
                       className={`builder-product-card ${
                         isSelected ? "is-selected" : ""
-                      } ${!hasStock ? "is-out-of-stock" : ""}`}
+                      } ${!hasStock ? "is-out-of-stock" : ""} compatibility-${
+                        compatibility.status
+                      }`}
                     >
                       <div className="builder-product-card__image">
                         {product.imageUrl ? (
@@ -285,12 +340,60 @@ export default function PcBuilder() {
                         <small className={hasStock ? "is-available" : "is-unavailable"}>
                           {hasStock ? `Stock disponible: ${product.stock}` : "Sin stock"}
                         </small>
+                        <span
+                          className={`builder-product-card__compatibility is-${
+                            compatibility.status
+                          }`}
+                          title={compatibility.message}
+                        >
+                          {compatibility.status === "compatible" && <Check size={15} />}
+                          {compatibility.status !== "compatible" && (
+                            <CircleAlert size={15} />
+                          )}
+                          {compatibility.label}
+                        </span>
+                        {currentStep.id === "ram" && isSelected && (
+                          <div
+                            className="ram-quantity"
+                            aria-label="Cantidad de módulos de memoria RAM"
+                          >
+                            <span>Módulos</span>
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  preserveScroll(() => setRamQuantity(1))
+                                }
+                                disabled={ramQuantity === 1}
+                                aria-label="Reducir cantidad de RAM"
+                              >
+                                −
+                              </button>
+                              <strong aria-live="polite">{ramQuantity}</strong>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  preserveScroll(() => setRamQuantity(2))
+                                }
+                                disabled={ramQuantity === 2}
+                                aria-label="Aumentar cantidad de RAM"
+                              >
+                                +
+                              </button>
+                            </div>
+                            {ramQuantity === 2 && <small>Dual channel</small>}
+                          </div>
+                        )}
                         <button
                           type="button"
-                          disabled={!hasStock}
+                          disabled={cannotSelect}
                           onClick={() => selectProduct(product)}
                         >
-                          {isSelected ? "Seleccionado" : "Seleccionar"}
+                          {compatibility.status === "incompatible"
+                            ? "No compatible"
+                            : isSelected
+                              ? "Seleccionado"
+                              : "Seleccionar"}
                         </button>
                       </div>
                     </article>
@@ -300,16 +403,28 @@ export default function PcBuilder() {
             )}
 
             <div className="builder-navigation">
-              <button
-                type="button"
-                className="builder-navigation__back"
-                disabled={currentStepIndex === 0}
-                onClick={() => goToStep(currentStepIndex - 1)}
-              >
-                <ArrowLeft size={18} /> Volver
-              </button>
+              <div className="builder-navigation__start">
+                <button
+                  type="button"
+                  className="builder-navigation__back"
+                  disabled={currentStepIndex === 0}
+                  onClick={() => goToStep(currentStepIndex - 1)}
+                >
+                  <ArrowLeft size={18} /> Volver
+                </button>
 
-              <div>
+                {selections[currentStep.id] && (
+                  <button
+                    type="button"
+                    className="builder-navigation__clear"
+                    onClick={clearCurrentSelection}
+                  >
+                    Borrar selección
+                  </button>
+                )}
+              </div>
+
+              <div className="builder-navigation__end">
                 {currentStep.optional && (
                   <button
                     type="button"
@@ -342,13 +457,32 @@ export default function PcBuilder() {
               <strong>{selectedProducts.length}/{builderSteps.length}</strong>
             </div>
 
+            {assemblyWarnings.length > 0 && (
+              <div className="builder-summary__warnings" role="alert">
+                <strong>
+                  <CircleAlert size={17} /> Revisá tu configuración
+                </strong>
+                <p>
+                  Un cambio dejó piezas incompatibles. Podés volver a esos pasos y
+                  reemplazarlas.
+                </p>
+                <ul>
+                  {assemblyWarnings.map((warning) => (
+                    <li key={`${warning.first}-${warning.second}`}>
+                      {warning.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {selectedProducts.length === 0 ? (
               <p className="builder-summary__empty">
                 Tus componentes elegidos aparecerán acá.
               </p>
             ) : (
               <ul>
-                {selectedProducts.map(({ step, product }) => (
+                {selectedProducts.map(({ step, product, quantity }) => (
                   <li key={step.id}>
                     <button
                       type="button"
@@ -357,9 +491,14 @@ export default function PcBuilder() {
                       )}
                     >
                       <span>{step.name}</span>
-                      <strong>{product.name}</strong>
+                      <strong>
+                        {step.id === "ram" ? `${quantity}x ` : ""}
+                        {product.name}
+                      </strong>
                     </button>
-                    <span>{moneyFormatter.format(Number(product.price))}</span>
+                    <span>
+                      {moneyFormatter.format(Number(product.price) * quantity)}
+                    </span>
                   </li>
                 ))}
               </ul>

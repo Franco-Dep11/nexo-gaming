@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import HeroCarousel from "./components/HeroCarousel";
 import FeaturedProducts from "./components/FeaturedProducts";
 import ProductCatalog from "./components/ProductCatalog";
+import Footer from "./components/Footer";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProductDetail from "./pages/ProductDetail";
@@ -49,30 +50,36 @@ function ProtectedAdminRoute({ children }) {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<StoreHome />} />
+    <div className="app-shell">
+      <div className="app-shell__content">
+        <Routes>
+          <Route path="/" element={<StoreHome />} />
 
-      <Route path="/productos" element={<ProductsPage />} />
+          <Route path="/productos" element={<ProductsPage />} />
 
-      <Route path="/productos/:id" element={<ProductDetail />} />
+          <Route path="/productos/:id" element={<ProductDetail />} />
 
-      <Route path="/armar-pc" element={<PcBuilder />} />
+          <Route path="/armar-pc" element={<PcBuilder />} />
 
-      <Route path="/buscar" element={<SearchResults />} />
+          <Route path="/buscar" element={<SearchResults />} />
 
-      <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
 
-      <Route
-        path="/admin"
-        element={
-          <ProtectedAdminRoute>
-            <AdminDashboard />
-          </ProtectedAdminRoute>
-        }
-      />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedAdminRoute>
+                <AdminDashboard />
+              </ProtectedAdminRoute>
+            }
+          />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+
+      <Footer />
+    </div>
   );
 }
 
